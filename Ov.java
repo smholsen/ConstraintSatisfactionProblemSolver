@@ -1,13 +1,13 @@
+package ov5;
+
 import java.io.FileNotFoundException;
 import java.io.FileReader;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Scanner;
+import java.util.*;
+import java.util.concurrent.ThreadLocalRandom;
 
 public class Ov {
-    public static interface ValuePairFilter {
-        public boolean filter(String x, String y);
+    public  interface ValuePairFilter {
+        boolean filter(String x, String y);
     }
 
     public static class DifferentValuesFilter implements ValuePairFilter {
@@ -203,8 +203,8 @@ public class Ov {
          * values has a length greater than one.
          */
         public String selectUnassignedVariable(VariablesToDomainsMapping assignment) {
-            // TODO: IMPLEMENT THIS
-            return "";
+            int maxIndex = assignment.size();
+            return assignment.get(ThreadLocalRandom.current().nextInt(0, maxIndex + 1)).toString();
         }
 
         /**
@@ -214,8 +214,31 @@ public class Ov {
          * arcs that should be visited.
          */
         public boolean inference(VariablesToDomainsMapping assignment, ArrayList<Pair<String>> queue) {
-            // TODO: IMPLEMENT THIS
-            return false;
+            // Run AC-3 on all constraints in the CSP, to weed out all of the
+            // values that are not arc-consistent to begin with.
+            //Returns false if an inconsistency is found, and true otherwise.
+
+            while (!queue.isEmpty()) {
+                Pair temp = queue.get(0);
+                String xi = (String) temp.x;
+                String xj = (String) temp.y;
+                queue.remove(0);
+                if (revise(assignment, xi, xj)) {
+                    if (this.domains.get(xi).size() == 0) {
+                        System.out.println(false);
+                        return false;
+                    }
+                    ArrayList<Pair<String>> neighbourset = this.getAllNeighboringArcs(xi);
+                    System.out.println(neighbourset.remove(new Pair<String>(temp.y.toString(), temp.x.toString())));
+                    for (Pair<String> neighbour : neighbourset) {
+                        queue.add(new Pair<String>(neighbour.x, xi));
+                        System.out.println("Added" + " " + neighbour.x + xi);
+                    }
+
+                }
+            }
+            System.out.println(true);
+            return true;
         }
 
         /**
@@ -228,8 +251,19 @@ public class Ov {
          * 'assignment'.
          */
         public boolean revise(VariablesToDomainsMapping assignment, String i, String j) {
-            // TODO: IMPLEMENT THIS
-            return false;
+            boolean revised = false;
+
+            for (Pair<String> p1 : getAllNeighboringArcs(i)) {
+                String xi = p1.x;
+                for (Pair<String> p2 : getAllNeighboringArcs(j)){
+                    String xj = p2.y;
+                    if (this.constraints.get(xi).get(xj) != null){
+                        this.domains.get(i).remove(xi);
+                        revised = true;
+                    }
+                }
+            }
+            return revised;
         }
     }
 
@@ -330,6 +364,8 @@ public class Ov {
         return csp;
     }
 
+
+
     /**
      * Convert the representation of a Sudoku solution as returned from the
      * method CSP.backtrackingSearch(), into a human readable representation.
@@ -349,3 +385,4 @@ public class Ov {
         }
     }
 }
+
